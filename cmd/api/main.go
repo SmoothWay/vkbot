@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"time"
 
 	"github.com/SevereCloud/vksdk/v2/api"
 	"github.com/SevereCloud/vksdk/v2/api/params"
@@ -13,7 +15,8 @@ import (
 )
 
 func main() {
-	token := "27e4657d1480eb5785cda6f8ca59167674483360417a792e92831c01499aafd99c2197dbe8ce239b62c3a"
+	var matchID int64 = 6821785352
+	token := os.Getenv("TOKEN")
 	vk := api.NewVK(token)
 	group, err := vk.GroupsGetByID(nil)
 	if err != nil {
@@ -24,43 +27,67 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ip.MessageNew(func(_ context.Context, obj events.MessageNewObject) {
+	dota2, err := dota2api.LoadConfig("./config.ini")
+	if err != nil {
+		log.Fatal(err)
+	}
+	steamIds := []int64{
+		76561199227027508,
+	}
+	accountId := dota2.GetAccountId(steamIds[0])
+	param := map[string]interface{}{
+		"account_id":        accountId,
+		"matches_requested": "1",
+	}
+
+	go ip.MessageNew(func(_ context.Context, obj events.MessageNewObject) {
 		log.Printf("%d: %s", obj.Message.PeerID, obj.Message.Text)
-		if obj.Message.Text == "zhanbot" {
-			dota2, err := dota2api.LoadConfig("./config.ini")
-			if err != nil {
-				log.Fatal(err)
-			}
-			steamIds := []int64{
-				76561199227027508,
-			}
-			accountId := dota2.GetAccountId(steamIds[0])
-			param := map[string]interface{}{
-				"account_id":        accountId,
-				"matches_requested": "1",
-			}
+		if obj.Message.Text == "start" {
+
+			go func() {
+				for {
+					matchHistory, err := dota2.GetMatchHistory(param)
+					if err != nil {
+						log.Fatal(err)
+					}
+					log.Println(matchHistory.Result.Matches[0].MatchID)
+					if matchHistory.Result.Matches[0].MatchID != matchID {
+						DBLink := fmt.Sprintf("https://dotabuff.com/matches/%d", matchHistory.Result.Matches[0].MatchID)
+						// matchHistoryObject, _ := json.Marshal(matchHistory)
+						sendMessage(vk, obj, DBLink)
+						matchID = matchHistory.Result.Matches[0].MatchID
+						time.Sleep(time.Minute * 9)
+					}
+					time.Sleep(time.Minute)
+				}
+			}()
+		} else if obj.Message.Text == "lm" {
 			matchHistory, err := dota2.GetMatchHistory(param)
 			if err != nil {
 				log.Fatal(err)
 			}
-			// log.Println(matchHistory)
-			DBLink := fmt.Sprintf("https://dotabuff.com/matches/%d", matchHistory.Result.Matches[0].MatchID)
-			// matchHistoryObject, _ := json.Marshal(matchHistory)
-			b := params.NewMessagesSendBuilder()
-			b.Message(DBLink)
-			b.RandomID(0)
-			b.PeerID(obj.Message.PeerID)
-
-			_, err = vk.MessagesSend(b.Params)
-			if err != nil {
-				log.Fatal(err)
-			}
+			message := fmt.Sprintf("https://dotabuff.com/matches/%d", matchHistory.Result.Matches[0].MatchID)
+			sendMessage(vk, obj, message)
 		}
-
 	})
 
 	log.Println("Start Long Poll")
 	if err := ip.Run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func sendMessage(vk *api.VK, obj events.MessageNewObject, message string) {
+	b := params.NewMessagesSendBuilder()
+	b.Message(message)
+	b.RandomID(0)
+	if obj.Message.PeerID <= 100000000 {
+		b.ChatID(obj.Message.PeerID)
+	} else {
+		b.PeerID(obj.Message.PeerID)
+	}
+	_, err := vk.MessagesSend(b.Params)
+	if err != nil {
 		log.Fatal(err)
 	}
 }
