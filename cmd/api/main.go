@@ -15,7 +15,11 @@ import (
 )
 
 func main() {
-	var matchID int64 = 6821785352
+	var matchID int64 = 6824792266
+	var heroID int
+	var win = "LOSE >(("
+	var hero dota2api.Hero
+	var zhanbot dota2api.Player
 	token := os.Getenv("TOKEN")
 	vk := api.NewVK(token)
 	group, err := vk.GroupsGetByID(nil)
@@ -28,6 +32,10 @@ func main() {
 		log.Fatal(err)
 	}
 	dota2, err := dota2api.LoadConfig("./config.ini")
+	if err != nil {
+		log.Fatal(err)
+	}
+	heroes, err := dota2.GetHeroes()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -48,23 +56,45 @@ func main() {
 				for {
 					matchHistory, err := dota2.GetMatchHistory(param)
 					if err != nil {
-						log.Fatal(err)
+						log.Println(err)
+						time.Sleep(time.Minute * 2)
 					}
 					log.Println(matchHistory.Result.Matches[0].MatchID)
-					if matchHistory.Result.Matches[0].MatchID != matchID {
-						DBLink := fmt.Sprintf("https://dotabuff.com/matches/%d", matchHistory.Result.Matches[0].MatchID)
-						// matchHistoryObject, _ := json.Marshal(matchHistory)
-						sendMessage(vk, obj, DBLink)
-						matchID = matchHistory.Result.Matches[0].MatchID
-						time.Sleep(time.Minute * 9)
+					match, err := dota2.GetMatchDetails(matchHistory.Result.Matches[0].MatchID)
+					if err != nil {
+						log.Println(err)
+						time.Sleep(time.Minute * 2)
 					}
-					time.Sleep(time.Minute)
+					if match.Result.MatchID != matchID {
+						players := match.Result.Players
+						for _, player := range players {
+							if player.AccountID == int(accountId) {
+								zhanbot = player
+								heroID = player.HeroID
+								hero = heroes[heroID-1]
+								break
+							}
+						}
+						if hero == (dota2api.Hero{}) {
+							log.Println("Empty hero")
+							time.Sleep(time.Minute * 2)
+						}
+						if match.Result.RadiantWin && zhanbot.PlayerSlot < 6 {
+							win = "WIN B-)"
+						}
+						duration := match.Result.Duration / 60
+						info := fmt.Sprintf("%v %v\n%d-%d-%d | %v min\nhttps://dotabuff.com/matches/%d", hero.Name[14:], win, zhanbot.Kills, zhanbot.Deaths, zhanbot.Assists, duration, match.Result.MatchID)
+						sendMessage(vk, obj, info)
+						matchID = match.Result.MatchID
+					}
+					time.Sleep(time.Minute * 2)
 				}
 			}()
 		} else if obj.Message.Text == "lm" {
 			matchHistory, err := dota2.GetMatchHistory(param)
 			if err != nil {
-				log.Fatal(err)
+				log.Println(err)
+				return
 			}
 			message := fmt.Sprintf("https://dotabuff.com/matches/%d", matchHistory.Result.Matches[0].MatchID)
 			sendMessage(vk, obj, message)
@@ -88,6 +118,13 @@ func sendMessage(vk *api.VK, obj events.MessageNewObject, message string) {
 	}
 	_, err := vk.MessagesSend(b.Params)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return
 	}
 }
+
+// func formatOutput() {
+// 	duration := match.Result.Duration / 60
+// 	info := fmt.Sprintf("%v %v\n%d-%d-%d | %v min\nhttps://dotabuff.com/matches/%d", hero.Name[14:], win, zhanbot.Kills, zhanbot.Deaths, zhanbot.Assists, duration, match.Result.MatchID)
+// 	sendMessage(vk, obj, info)
+// }
