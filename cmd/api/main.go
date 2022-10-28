@@ -58,12 +58,14 @@ func main() {
 					if err != nil {
 						log.Println(err)
 						time.Sleep(time.Minute * 2)
+						continue
 					}
 					log.Println(matchHistory.Result.Matches[0].MatchID)
 					match, err := dota2.GetMatchDetails(matchHistory.Result.Matches[0].MatchID)
 					if err != nil {
 						log.Println(err)
 						time.Sleep(time.Minute * 2)
+						continue
 					}
 					if match.Result.MatchID != matchID {
 						players := match.Result.Players
@@ -78,6 +80,7 @@ func main() {
 						if hero == (dota2api.Hero{}) {
 							log.Println("Empty hero")
 							time.Sleep(time.Minute * 2)
+							continue
 						}
 						if match.Result.RadiantWin && zhanbot.PlayerSlot < 6 {
 							win = "WIN B-)"
