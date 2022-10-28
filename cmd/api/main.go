@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/SevereCloud/vksdk/v2/api"
@@ -18,7 +19,7 @@ func main() {
 	var matchID int64 = 6824792266
 	var heroID int
 	var win = "LOSE >(("
-	var hero dota2api.Hero
+	var hero string
 	var zhanbot dota2api.Player
 	token := os.Getenv("TOKEN")
 	vk := api.NewVK(token)
@@ -73,20 +74,27 @@ func main() {
 							if player.AccountID == int(accountId) {
 								zhanbot = player
 								heroID = player.HeroID
-								hero = heroes[heroID-1]
+								for _, v := range heroes {
+									if v.ID == heroID {
+										hero = v.Name
+										break
+									}
+								}
+
 								break
 							}
 						}
-						if hero == (dota2api.Hero{}) {
+
+						if hero == "" {
 							log.Println("Empty hero")
 							time.Sleep(time.Minute * 2)
 							continue
 						}
-						if match.Result.RadiantWin && zhanbot.PlayerSlot < 6 {
+						if (match.Result.RadiantWin && zhanbot.PlayerSlot < 5) || (!match.Result.RadiantWin && zhanbot.PlayerSlot > 5) {
 							win = "WIN B-)"
 						}
 						duration := match.Result.Duration / 60
-						info := fmt.Sprintf("%v %v\n%d-%d-%d | %v min\nhttps://dotabuff.com/matches/%d", hero.Name[14:], win, zhanbot.Kills, zhanbot.Deaths, zhanbot.Assists, duration, match.Result.MatchID)
+						info := fmt.Sprintf("%v %v\n%d-%d-%d | %v min\nhttps://dotabuff.com/matches/%d", strings.Split(hero, "_")[3], win, zhanbot.Kills, zhanbot.Deaths, zhanbot.Assists, duration, match.Result.MatchID)
 						sendMessage(vk, obj, info)
 						matchID = match.Result.MatchID
 					}
