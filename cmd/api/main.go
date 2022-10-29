@@ -49,9 +49,3 @@ func main() {
 		log.Fatal(err)
 	}
 }
-
-// func formatOutput() {
-// 	duration := match.Result.Duration / 60
-// 	info := fmt.Sprintf("%v %v\n%d-%d-%d | %v min\nhttps://dotabuff.com/matches/%d", hero.Name[14:], win, zhanbot.Kills, zhanbot.Deaths, zhanbot.Assists, duration, match.Result.MatchID)
-// 	sendMessage(vk, obj, info)
-// }
