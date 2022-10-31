@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
+	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -56,11 +59,11 @@ func (app *App) sendMessage(vk *api.VK, obj events.MessageNewObject, message str
 func (app *App) getInfo(param map[string]interface{}, nick string, obj events.MessageNewObject) {
 	var matchID int64
 	var heroID int
-	var win = "LOSE >(("
 	var hero string
 	var pl dota2api.Player
 
 	for {
+		var win = "LOSE >(("
 		matchHistory, err := app.dota2.GetMatchHistory(param)
 		if err != nil {
 			log.Println(err)
@@ -96,7 +99,7 @@ func (app *App) getInfo(param map[string]interface{}, nick string, obj events.Me
 				time.Sleep(time.Minute * 2)
 				continue
 			}
-			if (match.Result.RadiantWin && pl.PlayerSlot < 5) || (!match.Result.RadiantWin && pl.PlayerSlot > 5) {
+			if (match.Result.RadiantWin && pl.PlayerSlot>>7&1 == 0) || (!match.Result.RadiantWin && pl.PlayerSlot>>7&1 == 1) {
 				win = "WIN B-)"
 			}
 			duration := match.Result.Duration / 60
@@ -106,4 +109,25 @@ func (app *App) getInfo(param map[string]interface{}, nick string, obj events.Me
 		}
 		time.Sleep(time.Minute * 2)
 	}
+}
+
+func (app *App) makeScreenshot(site string) (string, error) {
+	screenShotService := fmt.Sprintf("http://localhost:7171?url=%s%s", "https://", url.QueryEscape(site))
+
+	resp, err := http.Get(screenShotService)
+	if err != nil {
+		return "", err
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	filename := fmt.Sprintf("%s.png", strings.Replace(site, "/", "-", -1))
+	err = os.WriteFile(filename, body, 0666)
+	if err != nil {
+		return "", err
+	}
+	log.Printf("....saved screenshot to file %s", filename)
+	return filename, nil
 }

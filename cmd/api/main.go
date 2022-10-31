@@ -22,7 +22,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	inChat := make(map[int]int)
 	steamIds := []int64{
 		76561199227027508, // isBack
 		76561198194205802, // 1thousand
@@ -31,14 +31,17 @@ func main() {
 	}
 	nickNames := []string{"Gama", "Gama(main)", "Kaba", "t1mon"}
 	app.ip.MessageNew(func(_ context.Context, obj events.MessageNewObject) {
+		_, ok := inChat[obj.Message.PeerID]
+
 		log.Printf("%d: %s", obj.Message.PeerID, obj.Message.Text)
-		if obj.Message.Text == "start" {
+		if obj.Message.Text == "start" && !ok {
 			for i := range steamIds {
 				accountID := app.dota2.GetAccountId(steamIds[i])
 				param := map[string]interface{}{
 					"account_id":        accountID,
 					"matches_requested": "1",
 				}
+				inChat[obj.Message.PeerID] = 1
 				go app.getInfo(param, nickNames[i], obj)
 			}
 
