@@ -40,6 +40,7 @@ func main() {
 				param := map[string]interface{}{
 					"account_id":        accountID,
 					"matches_requested": "1",
+					"game_mode":         1,
 				}
 				inChat[obj.Message.PeerID] = 1
 				go app.getInfo(param, nickNames[i], obj)
