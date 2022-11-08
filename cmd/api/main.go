@@ -30,7 +30,7 @@ func main() {
 		76561198194088028, // no voice
 		76561199226990316, // eriksiz
 	}
-	nickNames := []string{"Gama", "Gama(main)", "Kaba", "t1mon"}
+	nickNames := []string{"Gama", "Gama(main)", "Kaba", "t1mon", "Kaba(eriksiz)"}
 	app.ip.MessageNew(func(_ context.Context, obj events.MessageNewObject) {
 		_, ok := inChat[obj.Message.PeerID]
 
