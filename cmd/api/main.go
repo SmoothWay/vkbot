@@ -34,7 +34,7 @@ func main() {
 		_, ok := inChat[obj.Message.PeerID]
 
 		log.Printf("%d: %s", obj.Message.PeerID, obj.Message.Text)
-		if obj.Message.Text == "st" && !ok {
+		if obj.Message.Text == "start" && !ok {
 			for i := range steamIds {
 				accountID := app.dota2.GetAccountId(steamIds[i])
 				param := map[string]interface{}{
