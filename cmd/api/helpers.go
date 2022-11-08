@@ -61,7 +61,7 @@ func (app *App) getInfo(param map[string]interface{}, nick string, obj events.Me
 	var heroID int
 	var hero string
 	var pl dota2api.Player
-
+	var match dota2api.MatchDetails
 	for {
 		var win = "LOSE >(("
 		matchHistory, err := app.dota2.GetMatchHistory(param)
@@ -70,13 +70,18 @@ func (app *App) getInfo(param map[string]interface{}, nick string, obj events.Me
 			time.Sleep(time.Minute * 2)
 			continue
 		}
-		log.Println(matchHistory.Result.Matches[0].MatchID)
-		match, err := app.dota2.GetMatchDetails(matchHistory.Result.Matches[0].MatchID)
-		if err != nil {
-			log.Println(err)
-			time.Sleep(time.Minute * 2)
-			continue
+		for i := range matchHistory.Result.Matches {
+			if matchHistory.Result.Matches[i].LobbyType == 7 {
+				match, err = app.dota2.GetMatchDetails(matchHistory.Result.Matches[i].MatchID)
+				if err != nil {
+					log.Println(err)
+					time.Sleep(time.Minute * 2)
+					continue
+				}
+				break
+			}
 		}
+
 		if match.Result.MatchID != matchID && match.Result.MatchID != 0 {
 			players := match.Result.Players
 			for _, player := range players {
@@ -107,6 +112,7 @@ func (app *App) getInfo(param map[string]interface{}, nick string, obj events.Me
 			app.sendMessage(app.vk, obj, info)
 			matchID = match.Result.MatchID
 		}
+
 		time.Sleep(time.Minute * 2)
 	}
 }
