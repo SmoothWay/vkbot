@@ -28,6 +28,7 @@ func main() {
 		76561198194205802, // 1thousand
 		76561198117214277, // unsiz
 		76561198194088028, // no voice
+		76561199226990316, // eriksiz
 	}
 	nickNames := []string{"Gama", "Gama(main)", "Kaba", "t1mon"}
 	app.ip.MessageNew(func(_ context.Context, obj events.MessageNewObject) {
